@@ -1,4 +1,5 @@
 import { Controller } from "zigbee-herdsman";
+import type { StartResult } from "zigbee-herdsman/dist/adapter/tstype";
 import Device from "./model/device";
 import Group from "./model/group";
 export default class Zigbee {
@@ -9,7 +10,7 @@ export default class Zigbee {
     private coordinatorIeeeAddr;
     constructor(eventBus: EventBus);
     get zhController(): Controller;
-    start(abortSignal: AbortSignal): Promise<boolean>;
+    start(): Promise<StartResult>;
     private logDeviceInterview;
     private generateNetworkKey;
     private generateExtPanID;
@@ -25,7 +26,7 @@ export default class Zigbee {
     getPermitJoin(): boolean;
     getPermitJoinEnd(): number | undefined;
     permitJoin(time: number, device?: Device): Promise<void>;
-    resolveDevicesDefinitions(ignoreCache?: boolean, abortSignal?: AbortSignal | undefined): Promise<void>;
+    resolveDevicesDefinitions(ignoreCache?: boolean): Promise<void>;
     private resolveDevice;
     private resolveGroup;
     resolveEntity(key: string | number | zh.Device): Device | Group | undefined;

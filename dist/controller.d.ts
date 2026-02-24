@@ -4,7 +4,6 @@ import Mqtt, { type MqttPublishOptions } from "./mqtt";
 import State from "./state";
 import Zigbee from "./zigbee";
 export declare class Controller {
-    #private;
     readonly eventBus: EventBus;
     readonly zigbee: Zigbee;
     readonly state: State;
@@ -22,7 +21,7 @@ export declare class Controller {
     removeExtension(extension: Extension): Promise<void>;
     private startExtension;
     private stopExtension;
-    stop(restart?: boolean, code?: number, signal?: NodeJS.Signals | undefined): Promise<void>;
+    stop(restart?: boolean, code?: number): Promise<void>;
     exit(code: number, restart?: boolean): Promise<void>;
     publishEntityState(entity: Group | Device, payload: KeyValue, stateChangeReason?: StateChangeReason): Promise<void>;
     iteratePayloadAttributeOutput(topicRoot: string, payload: KeyValue, options: Partial<MqttPublishOptions>): Promise<void>;
