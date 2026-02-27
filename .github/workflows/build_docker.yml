@@ -1,0 +1,80 @@
+name: Build Docker Image
+
+on:
+  workflow_dispatch:
+
+permissions:
+    contents: read
+    packages: write
+
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm i --frozen-lockfile
+
+            - name: Build
+              run: pnpm run build
+
+            - name: Clone and build custom zigbee-herdsman-converters
+              run: |
+                git clone https://github.com/zbgw7688/zigbee-herdsman-converters.git /tmp/zhc
+                cd /tmp/zhc
+                pnpm install --frozen-lockfile
+                pnpm run build
+                pnpm pack --pack-destination $GITHUB_WORKSPACE
+                cd $GITHUB_WORKSPACE
+                ZHC_TGZ=$(ls zigbee-herdsman-converters-*.tgz)
+                echo "ZHC_TGZ=$ZHC_TGZ" >> $GITHUB_ENV
+                jq --indent 4 ".dependencies[\"zigbee-herdsman-converters\"] = \"file:./$ZHC_TGZ\"" package.json > package.json.tmp
+                mv package.json.tmp package.json
+                pnpm install --no-frozen-lockfile
+
+            - name: Log in to the GitHub container registry
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+
+            - name: Docker setup - Buildx
+              id: buildx
+              uses: docker/setup-buildx-action@v3
+              with:
+                  version: latest
+
+            - name: Docker meta
+              uses: docker/metadata-action@v5
+              id: meta
+              with:
+                  images: ghcr.io/${{ github.repository }}
+                  tags: |
+                      type=ref,event=branch
+                      type=sha,prefix=
+                      type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+
+            - name: Docker build and push
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: docker/Dockerfile
+                  platforms: linux/amd64
+                  tags: ${{ steps.meta.outputs.tags }}
+                  push: true
+                  provenance: false
+                  sbom: false
+                  build-args: |
+                      COMMIT=${{ github.sha }}
+                      VERSION=${{ github.ref_name }}
+                      DATE=${{ github.event.repository.updated_at }}
